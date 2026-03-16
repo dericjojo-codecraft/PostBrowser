@@ -1,5 +1,5 @@
 import './styles.css'
-import { fetchPost, fetchComments } from './fetch.ts';
+import { ModelManager } from './fetch.ts';
 
 interface Comment {
     name: string;
@@ -7,6 +7,9 @@ interface Comment {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+    const model = new ModelManager;
+    (window as any).model = model;
+
     const postNumber = document.getElementById("post-number") as HTMLSpanElement;
     const titleElement = document.getElementById("post-title-display") as HTMLHeadingElement;
     const bodyElement = document.getElementById("post-body-display") as HTMLParagraphElement;
@@ -27,7 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
         commentsContainer.innerHTML = "";
 
         try {
-            const post = await fetchPost(id);
+            const post = await model.fetchPost(id);
             postNumber.textContent = String(id);
             titleElement.textContent = post.title;
             bodyElement.textContent = post.body;
@@ -43,14 +46,24 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    prevBtn.addEventListener("click", () => { if (currentId > 1) loadPost(--currentId); });
-    nextBtn.addEventListener("click", () => { if (currentId < TOTAL_POSTS) loadPost(++currentId); });
+    prevBtn.addEventListener("click", () => {
+        if (currentId > 1) {
+            loadPost(--currentId); 
+            updateButtons();
+        }
+    });
+    nextBtn.addEventListener("click", () => {
+        if (currentId < TOTAL_POSTS) {
+            loadPost(++currentId);
+            updateButtons();
+        }
+    });
     refreshBtn.addEventListener("click", () => loadPost(currentId));
 
     viewCommentsBtn.addEventListener("click", async () => {
         commentsContainer.innerHTML = "";
         try {
-            const comments = await fetchComments(currentId);
+            const comments = await model.fetchComments(String(currentId));
             comments.forEach((comment: Comment) => {
                 const div = document.createElement("div");
                 div.innerHTML = `<strong>${comment.name}</strong><p>${comment.body}</p>`;
@@ -61,8 +74,27 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    function updateButtons() {
+        prevBtn.disabled = currentId === 1;
+        nextBtn.disabled = currentId === TOTAL_POSTS;
+
+        if(currentId === 1) {
+            prevBtn.classList.add("disabled");
+        } else {
+            prevBtn.classList.remove("disabled");
+        }
+
+        if(currentId === TOTAL_POSTS) {
+            nextBtn.classList.add("disabled");
+        } else {
+            nextBtn.classList.remove("disabled");
+        }
+    }
+
+    updateButtons();
     loadPost(currentId);
 });
+
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 <section id="center">
